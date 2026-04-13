@@ -103,147 +103,43 @@ class SLLQueue:
         return values
 
 
-class HashNode:
-    def __init__(self, key, value, nextNode):
-        self.key = key
-        self.value = value
-        self.next = nextNode
-
-
-class HashTable:
-    def __init__(self, capacity=11):
-        self.capacity = capacity
-        self.table = [None] * capacity
-        self.size = 0
-
-    def hash_function(self, key):
-        text = str(key)
-        total = 0
-        for letter in text:
-            total = total + ord(letter)
-        return total % self.capacity
-
-    def set(self, key, value):
-        index = self.hash_function(key)
-        currentNode = self.table[index]
-
-        while(currentNode is not None):
-            if currentNode.key == key:
-                currentNode.value = value
-                return
-            currentNode = currentNode.next
-
-        newNode = HashNode(key, value, self.table[index])
-        self.table[index] = newNode
-        self.size += 1
-
-    def get(self, key, default=None):
-        index = self.hash_function(key)
-        currentNode = self.table[index]
-
-        while(currentNode is not None):
-            if currentNode.key == key:
-                return currentNode.value
-            currentNode = currentNode.next
-        return default
-
-    def delete(self, key):
-        index = self.hash_function(key)
-        currentNode = self.table[index]
-        previousNode = None
-
-        while(currentNode is not None):
-            if currentNode.key == key:
-                if previousNode is None:
-                    self.table[index] = currentNode.next
-                else:
-                    previousNode.next = currentNode.next
-                self.size -= 1
-                return currentNode.value
-            previousNode = currentNode
-            currentNode = currentNode.next
-        return None
-
-    def items(self):
-        pairs = []
-        for bucket in self.table:
-            currentNode = bucket
-            while(currentNode is not None):
-                pairs.append((currentNode.key, currentNode.value))
-                currentNode = currentNode.next
-        return pairs
-
-    def values(self):
-        values = []
-        pairs = self.items()
-        for pair in pairs:
-            values.append(pair[1])
-        return values
-
-    def __len__(self):
-        return self.size
-
-
 class BSTNode:
-    def __init__(self, data, item):
+    def __init__(self, data):
         self.left = None
         self.right = None
         self.data = data
-        self.items = [item]
 
-    def insert(self, data, item):
+    def insert(self, data):
         if(self.data == data):
-            self.items.append(item)
-        elif(data < self.data):
-            if(self.left is None):
-                self.left = BSTNode(data, item)
+            raise Exception("Data already exist within tree")
+        elif(self.data > data):
+            if(self.left):
+                self.left.insert(data)
             else:
-                self.left.insert(data, item)
+                self.left = BSTNode(data)
         else:
-            if(self.right is None):
-                self.right = BSTNode(data, item)
+            if(self.right):
+                self.right.insert(data)
             else:
-                self.right.insert(data, item)
-
-    def range_query(self, minimum, maximum, results):
-        if(minimum < self.data and self.left != None):
-            self.left.range_query(minimum, maximum, results)
-        if(minimum <= self.data and self.data <= maximum):
-            for item in self.items:
-                results.append(item)
-        if(maximum > self.data and self.right != None):
-            self.right.range_query(minimum, maximum, results)
-
-    def inorder(self, results):
-        if(self.left != None):
-            self.left.inorder(results)
-        for item in self.items:
-            results.append(item)
-        if(self.right != None):
-            self.right.inorder(results)
+                self.right = BSTNode(data)
 
 
 class BST:
     def __init__(self):
         self.root = None
 
-    def insert(self, data, item):
-        if(self.root is None):
-            self.root = BSTNode(data, item)
+    def insert(self, data):
+        if(self.root):
+            self.root.insert(data)
         else:
-            self.root.insert(data, item)
+            self.root = BSTNode(data)
 
-    def range_query(self, minimum, maximum):
-        results = []
-        if(self.root):
-            self.root.range_query(minimum, maximum, results)
-        return results
 
-    def inorder(self):
-        results = []
-        if(self.root):
-            self.root.inorder(results)
-        return results
+def inorder(node, results):
+    if node is not None:
+        inorder(node.left, results)
+        results.append(node.data)
+        inorder(node.right, results)
 
 
 def merge_sort(arr):
@@ -251,11 +147,9 @@ def merge_sort(arr):
         left_arr = arr[:len(arr)//2]
         right_arr = arr[len(arr)//2:]
 
-        # recursion
         merge_sort(left_arr)
         merge_sort(right_arr)
 
-        # merge
         i = 0
         j = 0
         k = 0
@@ -282,78 +176,164 @@ def merge_sort(arr):
     return arr
 
 
-def merge_sort_counts(arr):
-    if len(arr) > 1:
-        left_arr = arr[:len(arr)//2]
-        right_arr = arr[len(arr)//2:]
+def binary_search(lo, hi, condition):
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        result = condition(mid)
 
-        merge_sort_counts(left_arr)
-        merge_sort_counts(right_arr)
-
-        i = 0
-        j = 0
-        k = 0
-
-        while i < len(left_arr) and j < len(right_arr):
-            if left_arr[i]["quantity"] > right_arr[j]["quantity"]:
-                arr[k] = left_arr[i]
-                i += 1
-            else:
-                arr[k] = right_arr[j]
-                j += 1
-            k += 1
-
-        while i < len(left_arr):
-            arr[k] = left_arr[i]
-            i += 1
-            k += 1
-
-        while j < len(right_arr):
-            arr[k] = right_arr[j]
-            j += 1
-            k += 1
-
-    return arr
-
-
-def binary_search_exact(arr, target):
-    low = 0
-    high = len(arr) - 1
-
-    while(low <= high):
-        mid = (low + high) // 2
-        if(arr[mid] == target):
-            return arr[mid]
-        elif(arr[mid] < target):
-            low = mid + 1
+        if result == "found":
+            return mid
+        elif result == "left":
+            hi = mid - 1
         else:
+            lo = mid + 1
+
+    return -1
+
+
+def helper(cards, mid, query):
+    mid_number = cards[mid]
+
+    if mid_number == query:
+        if mid - 1 >= 0 and cards[mid - 1] == query:
+            return "left"
+        else:
+            return "found"
+    elif mid_number < query:
+        return "right"
+    else:
+        return "left"
+
+
+def binary_search_first(cards, query):
+    low, high = 0, len(cards) - 1
+
+    while low <= high:
+        mid = (low + high) // 2
+        decision = helper(cards, mid, query)
+
+        if decision == "found":
+            return mid
+        elif decision == "left":
             high = mid - 1
+        else:
+            low = mid + 1
+
+    return -1
+
+
+def find_menu_item_by_id(menu, item_id):
+    currentNode = menu.head
+
+    while(currentNode is not None):
+        item = currentNode.data
+        if item["item_id"] == item_id:
+            return item
+        currentNode = currentNode.next
+
     return None
 
 
-def binary_search_best_affordable(items, budget):
-    low = 0
-    high = len(items) - 1
-    best = None
+def sort_orders_by_number(order_list):
+    sortable = []
+    currentNode = order_list.head
 
-    while(low <= high):
-        mid = (low + high) // 2
-        if(items[mid]["price"] <= budget):
-            best = items[mid]
-            low = mid + 1
+    while(currentNode is not None):
+        order = currentNode.data
+        order_number = int(order["order_id"].split("-")[1])
+        sortable.append((order_number, order))
+        currentNode = currentNode.next
+
+    merge_sort(sortable)
+    return sortable
+
+
+def find_order_by_id(order_list, order_id):
+    if "-" not in order_id:
+        return None
+
+    try:
+        target_number = int(order_id.split("-")[1])
+    except ValueError:
+        return None
+
+    sortable = sort_orders_by_number(order_list)
+    if len(sortable) == 0:
+        return None
+
+    numbers = []
+    index = 0
+
+    while(index < len(sortable)):
+        numbers.append(sortable[index][0])
+        index += 1
+
+    position = binary_search_first(numbers, target_number)
+    if position == -1:
+        return None
+
+    return sortable[position][1]
+
+
+def queue_position(queue, order_id):
+    position = 1
+    currentNode = queue.head
+
+    while(currentNode is not None):
+        if currentNode.element == order_id:
+            return position
+        position += 1
+        currentNode = currentNode._next
+
+    return None
+
+
+def order_view(order, queue):
+    position = None
+    orders_ahead = None
+    message = "Order received."
+
+    if order["status"] == "RECEIVED":
+        position = queue_position(queue, order["order_id"])
+        if position is not None:
+            orders_ahead = position - 1
+
+        if orders_ahead is None:
+            message = "Order received."
+        elif orders_ahead == 0:
+            message = "Your order is next in line."
         else:
-            high = mid - 1
-    return best
+            message = "There are " + str(orders_ahead) + " orders ahead of you."
+
+    elif order["status"] == "PREPARING":
+        message = "Your order is being prepared."
+
+    elif order["status"] == "READY":
+        message = "Your order is ready for pickup."
+
+    elif order["status"] == "COMPLETED":
+        message = "Your order has been completed."
+
+    return {
+        "order_id": order["order_id"],
+        "customer_name": order["customer_name"],
+        "order_type": order["order_type"],
+        "location_details": order["location_details"],
+        "items": order["items"],
+        "item_count": order["item_count"],
+        "subtotal": order["subtotal"],
+        "status": order["status"],
+        "queue_position": position,
+        "orders_ahead": orders_ahead,
+        "message": message,
+    }
 
 
 class NightbreakCafeSystem:
     def __init__(self):
         self.menu = LinkedList()
-        self.menu_by_id = HashTable(11)
         self.menu_by_price = BST()
-        self.active_orders = HashTable(17)
-        self.completed_orders = LinkedList()
-        self.item_sales = HashTable(11)
+        self.orders = LinkedList()
         self.kitchen_queue = SLLQueue()
         self.next_order_number = 1
         self.load_menu()
@@ -372,37 +352,22 @@ class NightbreakCafeSystem:
 
         for item in menu_items:
             self.menu.insert(Node(item))
-            self.menu_by_id.set(item["item_id"], item)
-            self.menu_by_price.insert(item["price"], item)
+            self.menu_by_price.insert((item["price"], item["item_id"], item))
 
-    def categories(self):
-        categories = []
-        items = self.menu.to_list()
-        for item in items:
-            if item["category"] not in categories:
-                categories.append(item["category"])
-        merge_sort(categories)
-        return categories
+    def list_menu(self):
+        sorted_values = []
+        inorder(self.menu_by_price.root, sorted_values)
 
-    def list_menu(self, category="All", max_price=0):
-        items = self.menu_by_price.inorder()
-        filtered = []
+        items = []
+        index = 0
+        while(index < len(sorted_values)):
+            items.append(sorted_values[index][2])
+            index += 1
 
-        for item in items:
-            if(category != "All" and item["category"] != category):
-                continue
-            if(max_price != 0 and item["price"] > max_price):
-                continue
-            filtered.append(item)
-
-        return filtered
-
-    def recommend_under_budget(self, budget, category="All"):
-        items = self.list_menu(category, budget)
-        return binary_search_best_affordable(items, budget)
+        return items
 
     def create_order(self, customer_name, order_type, location_details, cart_items):
-        if(len(cart_items) == 0):
+        if cart_items is None or len(cart_items) == 0:
             raise ValueError("Cart cannot be empty.")
 
         if customer_name.strip() == "":
@@ -412,8 +377,11 @@ class NightbreakCafeSystem:
         subtotal = 0
         item_count = 0
 
-        for raw_item in cart_items:
-            menu_item = self.menu_by_id.get(raw_item["item_id"])
+        index = 0
+        while(index < len(cart_items)):
+            raw_item = cart_items[index]
+            menu_item = find_menu_item_by_id(self.menu, raw_item["item_id"])
+
             if(menu_item is None):
                 raise ValueError("Menu item was not found.")
 
@@ -424,16 +392,18 @@ class NightbreakCafeSystem:
                 quantity = 1
 
             line_total = round(menu_item["price"] * quantity, 2)
-            item = {
-                "item_id": menu_item["item_id"],
-                "name": menu_item["name"],
-                "quantity": quantity,
-                "unit_price": menu_item["price"],
-                "line_total": line_total,
-            }
-            items.append(item)
+            items.append(
+                {
+                    "item_id": menu_item["item_id"],
+                    "name": menu_item["name"],
+                    "quantity": quantity,
+                    "unit_price": menu_item["price"],
+                    "line_total": line_total,
+                }
+            )
             subtotal += line_total
             item_count += quantity
+            index += 1
 
         order_id = "NB-" + str(self.next_order_number)
         self.next_order_number += 1
@@ -449,13 +419,21 @@ class NightbreakCafeSystem:
             "status": "RECEIVED",
         }
 
-        self.active_orders.set(order_id, order)
+        self.orders.insert(Node(order))
         self.kitchen_queue.enqueue(order_id)
-        return order
+        return order_view(order, self.kitchen_queue)
+
+    def track_order(self, order_id):
+        order = find_order_by_id(self.orders, order_id)
+
+        if(order is None):
+            raise ValueError("Order was not found.")
+
+        return order_view(order, self.kitchen_queue)
 
     def advance_queue(self):
         order_id = self.kitchen_queue.dequeue()
-        order = self.active_orders.get(order_id)
+        order = find_order_by_id(self.orders, order_id)
 
         if(order is None):
             raise ValueError("Order was not found.")
@@ -463,31 +441,21 @@ class NightbreakCafeSystem:
             raise ValueError("Only received orders can start here.")
 
         order["status"] = "PREPARING"
-        return order
-
-    def add_sales(self, order):
-        for item in order["items"]:
-            current_total = self.item_sales.get(item["item_id"])
-            if current_total is None:
-                self.item_sales.set(item["item_id"], item["quantity"])
-            else:
-                self.item_sales.set(item["item_id"], current_total + item["quantity"])
+        return order_view(order, self.kitchen_queue)
 
     def advance_order_status(self, order_id):
-        order = self.active_orders.get(order_id)
+        order = find_order_by_id(self.orders, order_id)
+
         if(order is None):
             raise ValueError("Order was not found.")
 
         if(order["status"] == "PREPARING"):
             order["status"] = "READY"
-            return order
+            return order_view(order, self.kitchen_queue)
 
         if(order["status"] == "READY"):
             order["status"] = "COMPLETED"
-            self.add_sales(order)
-            self.completed_orders.insert(Node(order))
-            self.active_orders.delete(order_id)
-            return order
+            return order_view(order, self.kitchen_queue)
 
         raise ValueError("Order must be preparing or ready.")
 
@@ -495,85 +463,14 @@ class NightbreakCafeSystem:
         order_ids = self.kitchen_queue.to_list()
         queue_orders = []
 
-        for order_id in order_ids:
-            order = self.active_orders.get(order_id)
+        index = 0
+        while(index < len(order_ids)):
+            order = find_order_by_id(self.orders, order_ids[index])
             if(order is not None):
-                queue_orders.append(order)
+                queue_orders.append(order_view(order, self.kitchen_queue))
+            index += 1
 
         return queue_orders
-
-    def active_order_list(self):
-        return self.active_orders.values()
-
-    def completed_order_list(self):
-        return self.completed_orders.to_list()
-
-    def find_completed_order_binary(self, order_id):
-        if "-" not in order_id:
-            return None
-
-        target_number = int(order_id.split("-")[1])
-        orders = self.completed_orders.to_list()
-        numbers = []
-
-        for order in orders:
-            order_number = int(order["order_id"].split("-")[1])
-            numbers.append(order_number)
-
-        merge_sort(numbers)
-        found_number = binary_search_exact(numbers, target_number)
-
-        if found_number is None:
-            return None
-
-        for order in orders:
-            order_number = int(order["order_id"].split("-")[1])
-            if order_number == found_number:
-                return order
-
-        return None
-
-    def popular_items(self):
-        counts = []
-        pairs = self.item_sales.items()
-
-        for pair in pairs:
-            item_id = pair[0]
-            quantity = pair[1]
-            menu_item = self.menu_by_id.get(item_id)
-            if(menu_item is not None):
-                counts.append(
-                    {
-                        "item_id": item_id,
-                        "name": menu_item["name"],
-                        "quantity": quantity,
-                    }
-                )
-
-        merge_sort_counts(counts)
-        return counts
-
-    def total_revenue(self):
-        total = 0
-        orders = self.completed_orders.to_list()
-
-        for order in orders:
-            total += order["subtotal"]
-
-        return round(total, 2)
-
-    def dashboard(self):
-        return {
-            "menu_count": len(self.menu),
-            "queue_length": len(self.kitchen_queue),
-            "active_order_count": len(self.active_orders),
-            "completed_order_count": len(self.completed_orders),
-            "total_revenue": self.total_revenue(),
-            "queue": self.queue_snapshot(),
-            "active_orders": self.active_order_list(),
-            "completed_orders": self.completed_order_list(),
-            "popular_items": self.popular_items(),
-        }
 
 
 LinkedQueue = SLLQueue
