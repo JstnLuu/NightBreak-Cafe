@@ -1,13 +1,12 @@
 import unittest
 
 from system import BST
-from system import HashTable
 from system import LinkedList
 from system import NightbreakCafeSystem
 from system import Node
 from system import SLLQueue
-from system import binary_search_best_affordable
-from system import binary_search_exact
+from system import binary_search_first
+from system import inorder
 from system import merge_sort
 
 
@@ -33,46 +32,44 @@ class DataStructureTests(unittest.TestCase):
         self.assertEqual(queue.dequeue(), "NB-2")
         self.assertEqual(queue.peek(), "NB-3")
 
-    def test_hash_table_lookup(self):
-        table = HashTable(7)
-        table.set("NB100", "Latte")
-        table.set("NB102", 2)
-
-        self.assertEqual(table.get("NB100"), "Latte")
-        self.assertEqual(table.get("NB102"), 2)
-        self.assertEqual(table.get("missing", "none"), "none")
-
-    def test_bst_range_query(self):
+    def test_bst_inorder(self):
         tree = BST()
-        tree.insert(5.00, "Latte")
-        tree.insert(3.50, "Tea")
-        tree.insert(4.00, "Croissant")
-        tree.insert(6.50, "Sandwich")
+        tree.insert((5.00, "NB100", "Latte"))
+        tree.insert((3.50, "NB101", "Tea"))
+        tree.insert((4.00, "NB102", "Croissant"))
 
-        results = tree.range_query(3.75, 5.25)
+        results = []
+        inorder(tree.root, results)
 
-        self.assertEqual(results, ["Croissant", "Latte"])
+        self.assertEqual(
+            results,
+            [
+                (3.50, "NB101", "Tea"),
+                (4.00, "NB102", "Croissant"),
+                (5.00, "NB100", "Latte"),
+            ],
+        )
 
     def test_merge_sort_and_binary_search(self):
-        prices = [6.50, 3.00, 5.00, 4.00, 3.50]
+        prices = [6, 3, 5, 4, 3]
         merge_sort(prices)
 
-        items = [
-            {"name": "Muffin", "price": 3.00},
-            {"name": "Tea", "price": 3.50},
-            {"name": "Croissant", "price": 4.00},
-            {"name": "Latte", "price": 5.00},
-            {"name": "Sandwich", "price": 6.50},
-        ]
-
-        self.assertEqual(prices, [3.00, 3.50, 4.00, 5.00, 6.50])
-        self.assertEqual(binary_search_exact(prices, 4.00), 4.00)
-        self.assertEqual(binary_search_best_affordable(items, 4.25)["name"], "Croissant")
+        self.assertEqual(prices, [3, 3, 4, 5, 6])
+        self.assertEqual(binary_search_first(prices, 3), 0)
+        self.assertEqual(binary_search_first(prices, 5), 3)
 
 
 class NightbreakSystemTests(unittest.TestCase):
     def setUp(self):
         self.system = NightbreakCafeSystem()
+
+    def test_menu_is_sorted_by_price(self):
+        menu = self.system.list_menu()
+
+        self.assertEqual(
+            [item["item_id"] for item in menu],
+            ["NB103", "NB101", "NB102", "NB100", "NB104"],
+        )
 
     def test_create_order_adds_to_queue(self):
         order = self.system.create_order(
@@ -87,8 +84,28 @@ class NightbreakSystemTests(unittest.TestCase):
 
         self.assertEqual(order["status"], "RECEIVED")
         self.assertEqual(order["item_count"], 3)
+        self.assertEqual(order["queue_position"], 1)
         self.assertEqual(self.system.kitchen_queue.peek(), order["order_id"])
-        self.assertIsNotNone(self.system.active_orders.get(order["order_id"]))
+
+    def test_track_order_shows_orders_ahead(self):
+        self.system.create_order(
+            "Alex",
+            "pickup",
+            "",
+            [{"item_id": "NB100", "quantity": 1}],
+        )
+        second_order = self.system.create_order(
+            "Taylor",
+            "pickup",
+            "",
+            [{"item_id": "NB103", "quantity": 1}],
+        )
+
+        tracked = self.system.track_order(second_order["order_id"])
+
+        self.assertEqual(tracked["status"], "RECEIVED")
+        self.assertEqual(tracked["queue_position"], 2)
+        self.assertEqual(tracked["orders_ahead"], 1)
 
     def test_queue_then_complete_order(self):
         order = self.system.create_order(
@@ -98,58 +115,19 @@ class NightbreakSystemTests(unittest.TestCase):
             [{"item_id": "NB103", "quantity": 1}],
         )
 
-        self.system.advance_queue()
+        preparing = self.system.advance_queue()
+        self.assertEqual(preparing["status"], "PREPARING")
+
         ready = self.system.advance_order_status(order["order_id"])
         self.assertEqual(ready["status"], "READY")
+
         completed = self.system.advance_order_status(order["order_id"])
         self.assertEqual(completed["status"], "COMPLETED")
-        self.assertIsNone(self.system.active_orders.get(order["order_id"]))
-        self.assertEqual(self.system.completed_order_list()[0]["order_id"], order["order_id"])
 
-    def test_filter_menu(self):
-        items = self.system.list_menu("Food", 4.00)
+        tracked = self.system.track_order(order["order_id"])
+        self.assertEqual(tracked["status"], "COMPLETED")
 
-        self.assertEqual(len(items), 2)
-        self.assertEqual(items[0]["name"], "Muffin")
-        self.assertEqual(items[1]["name"], "Croissant")
-
-    def test_dashboard_popular_items(self):
-        first_order = self.system.create_order(
-            "Alex",
-            "pickup",
-            "",
-            [{"item_id": "NB100", "quantity": 2}],
-        )
-        second_order = self.system.create_order(
-            "Taylor",
-            "pickup",
-            "",
-            [
-                {"item_id": "NB100", "quantity": 1},
-                {"item_id": "NB103", "quantity": 1},
-            ],
-        )
-
-        self.system.advance_queue()
-        self.system.advance_order_status(first_order["order_id"])
-        self.system.advance_order_status(first_order["order_id"])
-        self.system.advance_queue()
-        self.system.advance_order_status(second_order["order_id"])
-        self.system.advance_order_status(second_order["order_id"])
-
-        dashboard = self.system.dashboard()
-
-        self.assertEqual(dashboard["popular_items"][0]["item_id"], "NB100")
-        self.assertEqual(dashboard["completed_order_count"], 2)
-        self.assertEqual(dashboard["queue_length"], 0)
-
-    def test_recommend_under_budget(self):
-        recommendation = self.system.recommend_under_budget(4.25, "All")
-
-        self.assertIsNotNone(recommendation)
-        self.assertEqual(recommendation["name"], "Croissant")
-
-    def test_completed_order_binary_search(self):
+    def test_queue_snapshot(self):
         first_order = self.system.create_order(
             "Jordan",
             "pickup",
@@ -163,17 +141,15 @@ class NightbreakSystemTests(unittest.TestCase):
             [{"item_id": "NB102", "quantity": 1}],
         )
 
-        self.system.advance_queue()
-        self.system.advance_order_status(first_order["order_id"])
-        self.system.advance_order_status(first_order["order_id"])
-        self.system.advance_queue()
-        self.system.advance_order_status(second_order["order_id"])
-        self.system.advance_order_status(second_order["order_id"])
+        queue = self.system.queue_snapshot()
 
-        found = self.system.find_completed_order_binary(second_order["order_id"])
+        self.assertEqual(len(queue), 2)
+        self.assertEqual(queue[0]["order_id"], first_order["order_id"])
+        self.assertEqual(queue[1]["order_id"], second_order["order_id"])
 
-        self.assertIsNotNone(found)
-        self.assertEqual(found["order_id"], second_order["order_id"])
+    def test_track_missing_order_raises_error(self):
+        with self.assertRaises(ValueError):
+            self.system.track_order("NB-999")
 
 
 if __name__ == "__main__":
